@@ -1,7 +1,7 @@
 #!/bin/sh
 # Lifts the eboot and the PRXs it ships into generated/, through
 # SwARc's platforms/orbis/tools/lift.sh (the modules and their bases are
-# the platform's, as ndc maps them). Run from the project directory.
+# the platform's, as ucr maps them). Run from the project directory.
 #
 # usage: tools/lift.sh APP0_DIR [BUILD_DIR]
 set -e

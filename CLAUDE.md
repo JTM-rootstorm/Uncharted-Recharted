@@ -1,4 +1,4 @@
-# Uncharted: The Nathan Drake Collection (PS4, CUSA02320) → native Linux/macOS static recomp
+# Uncharted-Recharted: Uncharted: The Nathan Drake Collection (PS4, CUSA02320) → native Linux/macOS static recomp
 
 Rules only. Status, findings and next steps go in FINDINGS.md. The
 lifter, the runtime and the PS4 platform module (platforms/orbis) live
@@ -8,7 +8,7 @@ second PS4 user of SwARc, after ../GravityRush: its job is to move the
 platform along, not this game alone.
 
 ## Layout
-- Project: ~/Documents/Programming/Recomp/PS4/NathanDrakeCollection
+- Project: ~/Documents/Programming/Recomp/PS4/UnchartedRecharted
   (local git repo, no remote yet).
 - Library: ~/Documents/Programming/Recomp/SwARc (add_subdirectory;
   SWARC_DIR overrides the path). Library changes are made in a
@@ -33,11 +33,11 @@ platform along, not this game alone.
   `tools/lift.sh "$HOME/Documents/Programming/Recomp/PS4-HB/dumps/games/CUSA02320/mnt/sandbox/pfsmnt/CUSA02320-app0-patch0-union"`
   generated/lift_report.txt lists unimplemented instructions and
   warnings.
-- Run: `out/build/release/bin/ndc --game-dir <app0> --param-sfo <param.sfo>`.
-  NDC_TRACE=1 logs every HLE call; NDC_BACKGROUND=1 for automated runs,
+- Run: `out/build/release/bin/ucr --game-dir <app0> --param-sfo <param.sfo>`.
+  UCR_TRACE=1 logs every HLE call; UCR_BACKGROUND=1 for automated runs,
   which go inside a memory cap with dummy audio and SDL asserts that
   abort:
-  `systemd-run --user --scope --quiet -p MemoryMax=6G -p MemorySwapMax=0 env NDC_BACKGROUND=1 SDL_ASSERT=abort SDL_AUDIO_DRIVER=dummy <command>`.
+  `systemd-run --user --scope --quiet -p MemoryMax=6G -p MemorySwapMax=0 env UCR_BACKGROUND=1 SDL_ASSERT=abort SDL_AUDIO_DRIVER=dummy <command>`.
 
 ## Rules
 - Never commit game files, generated code or anything derived from the

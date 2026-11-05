@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(ndc_recomp LANGUAGES C CXX)
+project(ucr_recomp LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -21,9 +21,9 @@ add_subdirectory("${SWARC_DIR}" swarc)
 # The game: its lifted code (generated/, produced by tools/lift.sh), a
 # lifted module of its own, and an executable that holds main(), with the
 # runtime and the PS4 HLE beside them in bin/ (recomp_bundle).
-recomp_add_lifted(ndc_lifted "${CMAKE_CURRENT_SOURCE_DIR}/generated" LINK recomp_orbis)
-if(TARGET ndc_lifted)
-  add_executable(ndc src/main.cpp)
-  target_link_libraries(ndc PRIVATE ndc_lifted recomp_orbis_hle)
-  recomp_bundle(ndc)
+recomp_add_lifted(ucr_lifted "${CMAKE_CURRENT_SOURCE_DIR}/generated" LINK recomp_orbis)
+if(TARGET ucr_lifted)
+  add_executable(ucr src/main.cpp)
+  target_link_libraries(ucr PRIVATE ucr_lifted recomp_orbis_hle)
+  recomp_bundle(ucr)
 endif()
