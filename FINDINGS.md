@@ -43,3 +43,30 @@ Dated notes on the game as SwARc's PS4 platform runs it.
   USER_DEFINED_PARAM_1; what the system answers is not known. The
   GoldHEN plugin (PS4-HB/plugins/hlevals) now logs it from the game on
   the console, with the compute queues' pipes and the GPU events' idents.
+
+## 2026-11-05: what the platform can fill without the console
+
+- SwARc ps4 284100a adds the libkernel imports whose behaviour 11.00's
+  libkernel defines on its own: user events (EVFILT_USER; level, or edge
+  with EV_CLEAR; a trigger carries udata), the kevent accessors,
+  scePthreadAttrGetdetachstate, sceKernelUtimes, __stack_chk_fail and
+  libScePosix rename/unlink.
+- sceAppContentAppParamGetInt is an IPMI call into a system service in
+  11.00's libSceAppContent, so the stop stays until the console answers.
+  The same holds for scePlayGoGetLanguageMask, GetProgress and Prefetch
+  (the PlayGo service).
+- The movies are raw H.264 Annex-B streams (x264): shareddata/movies/ps4/
+  sce-ndi-logos.bsf (the logos, first), uNdata/build/main/movie1/ps4/
+  *.bsf. They go through libSceVideodec2, a checking layer over
+  libSceVdecCore. Its structure sizes and checks come from the
+  library: decoder config and memory info 72 bytes, compute config
+  16 and memory 24, Decode's input 48 (AU pointer and size, pts,
+  dts, attached data), frame buffer 32 (256-aligned), output info 0x30
+  or 0x38. The memory sizes, the output delay and the picture layout
+  come from VdecCore and the driver: measured, not derived.
+- The hlevals plugin now also logs the game's Videodec2 calls (the
+  memory queries in and out, the first 48 Decode calls, GetPictureInfo)
+  and PlayGo's GetProgress and Prefetch; plugins.ini has [CUSA02320].
+  Console run: upload hlevals.prx and plugins.ini, enable the plugin
+  loader, start the collection, let the logos play into the first
+  game's title, then fetch /data/hlevals/plugin.txt.
