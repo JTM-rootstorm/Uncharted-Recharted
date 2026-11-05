@@ -34,3 +34,12 @@ Dated notes on the game as SwARc's PS4 platform runs it.
   arena to 256 GiB for it.
 - Next stop: libkernel!sceKernelSetVirtualRangeName, called right after
   that mapping (return address 0x861D05).
+- Then, handled in SwARc ps4 6c3a24b in the order reached:
+  sceKernelSetVirtualRangeName, sceFiberOptParamInitialize,
+  scePthreadAttrSetschedpolicy (policy 3, RR), sceVideoOutGetResolution-
+  Status, sceGnmAddEqEvent ids 0 to 6 (beside 0x40: the game registers
+  0x40 and 0-6 on separate queues, 0x922D2E), sceRemoteplayInitialize.
+- Stop: sceAppContentAppParamGetInt(1). param.sfo has no
+  USER_DEFINED_PARAM_1; what the system answers is not known. The
+  GoldHEN plugin (PS4-HB/plugins/hlevals) now logs it from the game on
+  the console, with the compute queues' pipes and the GPU events' idents.
