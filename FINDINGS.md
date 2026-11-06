@@ -130,7 +130,21 @@ library libSceAppContentUtil and are hooked at their 11.00 offsets).
   (0x70D0 + 32 * index) are indexed by a v_readfirstlane of the tile's
   light bitmask; handled now (run-time offsets in SwARc). At the title
   all light T#s are zero and the 128 shadow entries one 16x16 T#.
-- Current stop, same shader: a wave-wide min/max depth reduction
-  (ds_swizzle xor 1-16, then v_readlane of lanes 0 and 32), and
-  v_readlane of lane 0 for the tile's values. Needs true 64-lane waves
-  in the GPU translator (one invocation is lane 0 of its own wave now).
+- That shader's wave-wide min/max depth reduction (ds_swizzle xor 1-16,
+  then v_readlane of lanes 0 and 32) and its v_readlane / waterfall loops
+  (v_readfirstlane into M0, v_cmpx, v_movrels) need real 64-lane waves:
+  SwARc ps4 27f9eff runs such compute stages in waves. The same shader
+  loads the light records per lane through ADDR64 buffer loads (a V# of
+  base 0, no range; v[12:13] = s[0:1] + 0xE0 * light), handled there too.
+- Then, in the order reached (SwARc ps4 aa3bd8b..): the stencil sampled
+  as 8 UINT; a 3D texture in tile mode 19 (1D thick); a pixel shader's
+  waterfall loop with v_movrels (VGPR indexed by M0);
+  EVENT_WRITE of PIXEL_PIPE_STAT_CONTROL (00000138 0007FC00: counter 0,
+  stride 2, render backends 0-7).
+- Current stop: EVENT_WRITE of PIXEL_PIPE_STAT_DUMP (00000139 3857A6F0
+  00000010: event 0x39 index 1 to 0x103857A6F0), an occlusion query.
+  SwARc's host GPU layer has no occlusion queries (SDL_GPU has none and
+  draws cannot write storage), and the dump's memory layout on 11.00 is
+  not measured (presumably a 64-bit count per render backend, 16 bytes
+  apart, begin and end, bit 63 valid). Needs a console measurement of
+  the dumps and a way to count passing samples on the host.
