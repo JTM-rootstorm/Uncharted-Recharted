@@ -115,3 +115,19 @@ library libSceAppContentUtil and are hooked at their 11.00 offsets).
     defaults: format 5, colour 2/2/2), timing 1/120 not fixed,
     bitstream restriction, max_dec_frame_buffering 4.
   All 127 of the game's movies have that SPS.
+
+## 2026-11-05: past the title's first frames
+
+- The title's HDR target (1920x1088, 16_16_16_16 float, FAST_CLEAR on)
+  is cleared by a compute dispatch that zeroes its whole CMASK (0x5000
+  bytes); clear colour (0, 0, 0, 1) in CLEAR_WORD0/1. Modelled in SwARc
+  (colour fast clears).
+- Then image_gather4_c_o, a 64-bit address summed with s_add_u32 +
+  s_addc_u32, and MXCSR.DAZ with denormal operands on the CPU: all
+  handled now.
+- Current stop: a compute shader (lighting/decal-style list loop) that
+  loads its T#/S# per item at run time: v_readfirstlane of a per-lane
+  index, times 0xE0, added to s[0:1], then s_load_dwordx8 (T# at +0x90
+  of the entry) and s_load_dwordx4 (S# at +0xB0). The resolver cannot
+  know these descriptors ahead of the dispatch: needs dynamically
+  indexed descriptors in the GPU translator.
