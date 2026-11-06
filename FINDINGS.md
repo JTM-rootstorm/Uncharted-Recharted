@@ -125,9 +125,12 @@ library libSceAppContentUtil and are hooked at their 11.00 offsets).
 - Then image_gather4_c_o, a 64-bit address summed with s_add_u32 +
   s_addc_u32, and MXCSR.DAZ with denormal operands on the CPU: all
   handled now.
-- Current stop: a compute shader (lighting/decal-style list loop) that
-  loads its T#/S# per item at run time: v_readfirstlane of a per-lane
-  index, times 0xE0, added to s[0:1], then s_load_dwordx8 (T# at +0x90
-  of the entry) and s_load_dwordx4 (S# at +0xB0). The resolver cannot
-  know these descriptors ahead of the dispatch: needs dynamically
-  indexed descriptors in the GPU translator.
+- The tiled lighting compute shader: its per-light records (0xE0 bytes
+  from the user-data pointer, T#/S# at +0x90/+0xB0) and shadow T#s
+  (0x70D0 + 32 * index) are indexed by a v_readfirstlane of the tile's
+  light bitmask; handled now (run-time offsets in SwARc). At the title
+  all light T#s are zero and the 128 shadow entries one 16x16 T#.
+- Current stop, same shader: a wave-wide min/max depth reduction
+  (ds_swizzle xor 1-16, then v_readlane of lanes 0 and 32), and
+  v_readlane of lane 0 for the tile's values. Needs true 64-lane waves
+  in the GPU translator (one invocation is lane 0 of its own wave now).
