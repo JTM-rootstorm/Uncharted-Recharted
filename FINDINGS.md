@@ -70,3 +70,48 @@ Dated notes on the game as SwARc's PS4 platform runs it.
   Console run: upload hlevals.prx and plugins.ini, enable the plugin
   loader, start the collection, let the logos play into the first
   game's title, then fetch /data/hlevals/plugin.txt.
+
+## 2026-11-05: the console's answers (hlevals runs 1-4)
+
+Logs and the three decoded frames: PS4-HB/dumps/11.00/hlevals_plugin_ucr_run1-3.txt
+and hlevals_ucr_run4/. Runs 1-3 fixed the plugin (libraries the game
+loads with sceSysmoduleLoadModule are hooked after that call, at the
+address their module exports; AppContent's functions live in the
+library libSceAppContentUtil and are hooked at their 11.00 offsets).
+
+- AppParamGetInt(1) without USER_DEFINED_PARAM_1: 0, value 0.
+- PlayGo: handle 319 on the console; language mask 0x4000000000000000;
+  Prefetch 0. GetProgress and SetLanguageMask are not called on the way
+  into the first game.
+- DownloadDataGetAvailableSpaceKb("/download0"), DOWNLOAD_DATA_SIZE 0:
+  0x80D90004, the size not written.
+- One system event pending at start: type 0x10000003, no data.
+- Mouse with nothing attached: Init 0, Open -> 0x160500, Read -> 1.
+- Gamma 1.0 -> settings {1, 1, 1, 0}; AdjustColor_ (size 16) 0.
+- Trophies: 54 in the set, none unlocked (that user).
+- NpTus (the console's user is signed in): title contexts 0x10000001 on,
+  requests never finish (offline). SwARc models a user not signed in.
+- Compute queues: pipe p queue 1 -> id 8p + 2; Videodec2's own queue
+  pipe 4 queue 7 (16384 dwords) -> 0x28, its interrupt GPU event ident 4.
+- Videodec2, for this game's config (H.264, 1920x1088, 4 reference
+  frames, flags 0x100):
+  - compute memory 0x495200; the queue handle the memory's base +
+    0x290500;
+  - decoder memory: CPU 0x334CC00, GPU 0x48EAE00, 0x304B000 and 0x3314
+    (the last two the frame-buffer query's), alignment 0x100; the
+    decoder handle is the CPU memory's base;
+  - output: the first picture on the 8th access unit, then one a call,
+    in display order, copied into the frame buffer given with that call
+    (output info: valid, picture count 1, codec 1, 1920 / pitch 1920 /
+    1088, the frame buffer's address and size). Flush hands out the
+    other 7 one a call, then an empty one;
+  - the picture: linear NV12, pitch 1920, 1088 rows of luma (the 8
+    padding rows decoded, 16), interleaved chroma at 1920 * 1088.
+    ffmpeg's decode of the same stream matches it byte for byte;
+  - GetPictureInfo (first argument only, 104 bytes): pts and dts as
+    given, attached data (the access unit's index), profile 100, level
+    42, width/height in macroblocks - 1 (119, 67), frame_mbs_only,
+    cropping (bottom 8 rows), no aspect ratio or video signal type (the
+    defaults: format 5, colour 2/2/2), timing 1/120 not fixed,
+    bitstream restriction, max_dec_frame_buffering 4.
+  All 127 of the game's movies have that SPS.
