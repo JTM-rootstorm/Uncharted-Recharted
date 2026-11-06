@@ -146,5 +146,7 @@ library libSceAppContentUtil and are hooked at their 11.00 offsets).
   SwARc's host GPU layer has no occlusion queries (SDL_GPU has none and
   draws cannot write storage), and the dump's memory layout on 11.00 is
   not measured (presumably a 64-bit count per render backend, 16 bytes
-  apart, begin and end, bit 63 valid). Needs a console measurement of
-  the dumps and a way to count passing samples on the host.
+  apart, begin and end, bit 63 valid). SwARc ps4 now counts the pixels
+  of the draws DB_COUNT_CONTROL counts (one exact 64-bit counter); the
+  dump still needs a console measurement of what it writes (the plugin
+  reading the query buffer after the GPU has written it).
