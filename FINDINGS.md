@@ -150,3 +150,25 @@ library libSceAppContentUtil and are hooked at their 11.00 offsets).
   of the draws DB_COUNT_CONTROL counts (one exact 64-bit counter); the
   dump still needs a console measurement of what it writes (the plugin
   reading the query buffer after the GPU has written it).
+
+## 2026-11-06: the game's occlusion queries
+
+- The packets come from the game's own Gnm (0x8737B0, begin or end of a
+  query at a): for a begin, DMA_DATA zero-fills 128 bytes at a and
+  WAIT_REG_MEM waits for it; then EVENT_WRITE 0x138 (0x7FC00) and
+  EVENT_WRITE 0x139 to a (begin) or a + 8 (end). So a query is 128 bytes:
+  8 render backends, 16 bytes apart, begin then end. A query pool
+  (0x41CF50..0x41D0B0) hands out consecutive 128-byte queries, memsets
+  the pool on reset, ends a frame's queries with an end-of-pipe label
+  (0x873A40) and on completion sets each query's result flag to 1.
+  What the GPU writes in those 16 bytes (count width, a valid bit,
+  unused backends) is what the console run measures.
+- The hlevals plugin now hooks sceGnmSubmitCommandBuffersForWorkload and
+  SubmitAndFlipCommandBuffersForWorkload (11.00's plain Submit and
+  SubmitAndFlip jump to them), finds the dumps in the command buffers and
+  the indirect buffers they call, logs the first 8 submits that have any
+  (the control word, the dump addresses, DB_COUNT_CONTROL), and a thread
+  logs every change of the first 4 queries' 128 bytes for up to 2
+  minutes. Console run: upload hlevals.prx to /data/GoldHEN/plugins/
+  (plugins.ini already has [CUSA02320]), start the first game and leave it
+  at the title for 2 minutes, then fetch /data/hlevals/plugin.txt.
