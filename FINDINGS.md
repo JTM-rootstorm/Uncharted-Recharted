@@ -169,6 +169,9 @@ library libSceAppContentUtil and are hooked at their 11.00 offsets).
   the indirect buffers they call, logs the first 8 submits that have any
   (the control word, the dump addresses, DB_COUNT_CONTROL), and a thread
   logs every change of the first 4 queries' 128 bytes for up to 2
-  minutes. Console run: upload hlevals.prx to /data/GoldHEN/plugins/
+  minutes. The dump is in the top-level command buffers of the main
+  renderer's first submit (76 buffers in one sceGnmSubmitCommandBuffers;
+  the plugin's first run scanned only 16 and saw none, log
+  hlevals_plugin_ucr_run5.txt). Console run: upload hlevals.prx to /data/GoldHEN/plugins/
   (plugins.ini already has [CUSA02320]), start the first game and leave it
   at the title for 2 minutes, then fetch /data/hlevals/plugin.txt.
