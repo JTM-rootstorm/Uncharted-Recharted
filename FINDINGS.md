@@ -175,3 +175,22 @@ library libSceAppContentUtil and are hooked at their 11.00 offsets).
   hlevals_plugin_ucr_run5.txt). Console run: upload hlevals.prx to /data/GoldHEN/plugins/
   (plugins.ini already has [CUSA02320]), start the first game and leave it
   at the title for 2 minutes, then fetch /data/hlevals/plugin.txt.
+
+## 2026-11-06: the console's occlusion dumps (hlevals run 6)
+
+Log: PS4-HB/dumps/11.00/hlevals_plugin_ucr_run6.txt (run 5 saw no
+dumps: the plugin scanned only 16 of the submit's buffers).
+
+- Every main-renderer submit (114 to 118 command buffers) has one query:
+  PIXEL_PIPE_STAT_CONTROL 0x7FC00 twice, a begin and an end dump
+  (0x103857A6F0 and +8 in the first; later queries 0x90 lower each
+  frame), DB_COUNT_CONTROL 0x11000102 (PERFECT_ZPASS_COUNTS, ZPASS
+  enabled, both slice masks) then 0x11000100.
+- The query's 128 bytes, zeroed first, then: 8 render backends, 16 bytes
+  apart, each a begin and an end qword. Every one has bit 63 set over a
+  running per-backend count (e.g. 0x800000208C078569; the backends
+  differ, and the counts grow between frames). At the title, begin and
+  end are equal in every backend: no pixel passes.
+- SwARc ps4 2ea9382 writes the dumps that way (backend 0 holds the count,
+  the others stay at 0).
+- Current stop: s_not_b64 in a draw shader (11103B2AA4: BEEA086A).
