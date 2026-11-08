@@ -384,3 +384,36 @@ every call for the game's one decoder:
   mapping in its range, fixed maps reserve their exact address).
 - Stops at: FATAL "sceVideoOutSubmitFlip: flip mode 2 not implemented
   yet".
+
+## 2026-11-08: flip mode 2: where it comes from, what it does
+
+- The game's flip thread (0x8FD6A0 on, the SubmitAndFlip call at
+  0x8FDBE1) takes queued flip requests; the producer (0x91DDF2) sets the
+  flip mode to 2 when the byte at 0x12765C0+0x30 is set, otherwise 1.
+  The byte is set by 0xB50BFF and cleared by 0xB50C9D (a paired
+  enter/leave on the counter at 0xFA7E30). On our run that happens at
+  flip 701 (flip arg 701): flips 0-700 are mode 1.
+- The console's run 6 logs only the first 64 SubmitAndFlip calls in full
+  (all mode 1, flip rate 0 from SetFlipRate); the summary shows 7949
+  calls with no error, so mode 2 is accepted there.
+- libSceVideoOut 11.00's SubmitFlip only checks the mode is 1-6
+  (0x80290006 otherwise) and passes it to the kernel's flip ioctl
+  0xC0487704; what mode 2 does (when the flip happens against the
+  vblanks) is decided in the kernel; measured below.
+- The game waits on the flip on the GPU (sceGnmInsertWaitFlipDone, the
+  buffer's label), so the timing of the flip, and of the label clear, is
+  what mode 2 changes for it.
+- Measured (console run 7, PS4-HB/dumps/11.00/hlevals_ucr_run7): the
+  hlevals plugin samples sceVideoOutGetFlipStatus and
+  sceVideoOutGetVblankStatus every 100 us and logs each SubmitAndFlip
+  mode change. The game is in mode 2 for flip args 675-800 and
+  3899-4639, mode 1 otherwise. Mode 1: every flip at a vblank (flip
+  TSC = vblank TSC), one per 16.7 ms. Mode 2: no flip at a vblank; flips
+  20-140 us (median 46) after the submit TSC, 6.7-14 ms apart, 1-3 per
+  vblank (109 vblanks with 1, 274 with 2, 68 with 3).
+- Implemented in SwARc (5918978, "orbis: flip mode 2"). A run passes the
+  switch (first mode 2 flip at arg 700) and keeps going past flip 9400
+  in 180 s, without a fatal error.
+- A run with UCR_TRACE=1 (slower) stopped earlier, at flip 247, with
+  FATAL "libSceVideodec2: a second SPS not implemented yet"; the plain
+  run did not reach it in 180 s. Next stop to look at.
