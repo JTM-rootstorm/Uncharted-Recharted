@@ -357,3 +357,14 @@ every call for the game's one decoder:
 - Tools: PS4-HB/plugins/hlevals/tools/at9ref.c (LibAtrac9 frame by
   frame: bytes used per frame, s16 out) and ajm_pcm.py (a decode
   against the log's consumed counts and output rows).
+
+## 2026-11-08: past the AJM stop (SwARc: ATRAC9 on LibAtrac9)
+
+- SwARc now models the measured AJM behaviour (a RIFF header configuring
+  an uninitialised ATRAC9 instance, frame lengths, results 0x10/0x8) on
+  LibAtrac9. A run (UCR_TRACE_FILTER=Ajm) gets through 436 RunSplitBuffer
+  jobs, every BatchWait returning 0, while the logos play.
+- Stops at: FATAL "direct memory 12C00000 mapped twice (aliasing): not
+  supported" (sceKernelMapDirectMemory from a guest thread, 0x0104),
+  after the AJM jobs above. The kernel HLE maps each direct memory range
+  once; the game maps one range at two addresses.
