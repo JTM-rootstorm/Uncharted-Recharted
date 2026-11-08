@@ -287,3 +287,43 @@ every call for the game's one decoder:
   job first. What the ACP answers then is not measured: the hlevals
   plugin needs AJM hooks (instance flags, the batch, the sideband after
   BatchWait) and a console run.
+
+## 2026-11-08: the full-call console run; AJM decodes a RIFF stream unasked
+
+- PS4-HB's hlevals plugin now logs every call the game makes into the
+  firmware (all 384 import slots of eboot.bin, libc.prx and
+  libSceFios2.prx: arguments, memory before and after, results; AJM
+  batches whole, with each job's sideband and output when BatchWait
+  returns). The run: PS4-HB/dumps/11.00/hlevals_ucr_run6/plugin.txt
+  (70 MB; all slots hooked, no failure). PS4-HB/plugins/hlevals/tools/
+  ajm_jobs.py tabulates its AJM jobs. Check it before asking for
+  another console run.
+- The current stop, measured: the first AJM instance the game creates
+  is 0x4007 on the console (codec 1 = ATRAC9, flags 0x100000041; then
+  0x4009-0x400C, likewise never initialised; ours numbers from 0x4001).
+  Its first RunSplitBuffer job (flags 0x800000001001) gets
+  shareddata/sound/sce-ndi-logos.xvag from offset 0x310: a RIFF/WAVE
+  file (fmt extensible, ATRAC9 GUID, config FE 7A 17 F0: 4 channels,
+  48 kHz, superframe 768 bytes = 4 frames of 256 samples; fact: 695654
+  samples, delay 256; data at +100, 680 superframes). With no
+  initialisation job the ACP takes the configuration from that header
+  and decodes. The sideband (result, internal result, consumed,
+  written, total samples):
+    job 1: 0x10 (NOT_ENOUGH_ROOM: output full), 0, 2472, 0x6000, 3072
+      = the 100-byte header, superframes 0-2 and frame 0 of superframe
+      3 (68 bytes): 13 frames, the first 256 samples dropped (the fact
+      delay), 3072 samples in 0x6000 bytes (4 x s16)
+    job 2: 0x10, 0, 2286, 0x6000, 6144
+    job 3: 0x10, 0, 856, 0x3000, 7680; job 4 on: one frame a job
+      (output room 0x800), consumed 630, 50, 44, 44, 630, ...
+  So a frame consumes its own length (byte-aligned), not a quarter of
+  the superframe; the last frame of a superframe takes the rest. The
+  first outputs are silence; 2635 of the instance's 2900 logged
+  outputs are not.
+- ffmpeg 8.1.3's ATRAC9 decoder rejects 45 of this stream's 680
+  superframes ("Invalid block flags", "Invalid stereo band"), which the
+  console decodes, so the HLE cannot decode it through ffmpeg. LibAtrac9
+  (MIT, reverse-engineered from Sony's decoder) decodes one frame at a
+  time and reports the bytes it used: the candidate to compare against
+  the console's consumed counts and output bytes (the log has the first
+  64 bytes of every job's output, and the whole output's FNV-1a).
