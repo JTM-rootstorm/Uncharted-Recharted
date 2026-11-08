@@ -309,7 +309,7 @@ every call for the game's one decoder:
   initialisation job the ACP takes the configuration from that header
   and decodes. The sideband (result, internal result, consumed,
   written, total samples):
-    job 1: 0x10 (NOT_ENOUGH_ROOM: output full), 0, 2472, 0x6000, 3072
+    job 1: 0x10 (output full, input left), 0, 2472, 0x6000, 3072
       = the 100-byte header, superframes 0-2 and frame 0 of superframe
       3 (68 bytes): 13 frames, the first 256 samples dropped (the fact
       delay), 3072 samples in 0x6000 bytes (4 x s16)
@@ -327,3 +327,33 @@ every call for the game's one decoder:
   time and reports the bytes it used: the candidate to compare against
   the console's consumed counts and output bytes (the log has the first
   64 bytes of every job's output, and the whole output's FNV-1a).
+
+## 2026-11-08: LibAtrac9 against the console
+
+- LibAtrac9 (MIT, PS4-HB/refs/LibAtrac9) decodes all 680 superframes of
+  the logos stream without an error. Its per-frame byte counts, with
+  the last frame of each superframe taking the superframe's rest,
+  reproduce the console's consumed count for every one of instance
+  0x4007's 2689 jobs on that stream, the 100-byte header included.
+- The last job (seq 13775): result 0x8, consumed 674 (44 + the last
+  superframe's rest, 630), written 0x330 = 102 samples, total 695654:
+  the output stops at the fact sample count, and 0x8 marks the stream's
+  end. Result 0x10 = the output is full and input is left.
+- PCM: of the 86080 samples the log holds (each job's first 32, read at
+  the first BatchWait returning 0 for it; a wait returning 0x8093000F
+  dumps the buffer before the job ran), 77872 (90.5%) match LibAtrac9
+  rounded to nearest and the other 8208 differ by exactly 1; 291 whole
+  output buffers are equal. The misses sit where the fraction is near
+  .5 (error rms 0.29 LSB, mean +0.015); a float build of LibAtrac9, and
+  truncating or flooring, fit no better. So the console's decoder
+  computes with other arithmetic (the ACP is a DSP); the format, frame
+  lengths and scaling are the same.
+- Every instance the game never initialises starts on a RIFF header:
+  0x4007 (twice: the logos stream at seq 4209, a 3.9 MB stream at
+  14977, consumed 0xA27 on its first job),
+  0x4009 (seq 13123; 4 channels), 0x400A, 0x400B, 0x400C (13662,
+  13664, 14857; 1 channel, 256-byte superframes, all 48 kHz). A RIFF
+  header on a running instance restarts it.
+- Tools: PS4-HB/plugins/hlevals/tools/at9ref.c (LibAtrac9 frame by
+  frame: bytes used per frame, s16 out) and ajm_pcm.py (a decode
+  against the log's consumed counts and output rows).
