@@ -12,8 +12,8 @@ platform along, not this game alone.
   (local git repo, no remote yet).
 - Library: ~/Documents/Programming/Recomp/SwARc (add_subdirectory;
   SWARC_DIR overrides the path). Library changes are made in a
-  worktree (../../SwARc-<topic>; the PS4 work is in ../../SwARc-ps4)
-  and committed there; its rules apply.
+  topic worktree (../../SwARc-<topic>, cut from main) and landed with
+  its tools/land.py; its rules apply.
 - Game: the decrypted app0 (base game + patch, the union the console
   runs) dumped from the user's own console (NEVER commit or copy into
   the repo):
@@ -26,7 +26,7 @@ platform along, not this game alone.
   references only, never copied here or into the library.
 
 ## Build
-- `cmake --preset release -DSWARC_DIR=$HOME/Documents/Programming/Recomp/SwARc-ps4 && cmake --build --preset release`
+- `cmake --preset release && cmake --build --preset release`
 - Lifting is a separate step (needs a build first, it runs orbis_app);
   re-run it after any change to the library's lifter or the binaries,
   then re-run cmake (the generated file list is globbed):
