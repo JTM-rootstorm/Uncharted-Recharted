@@ -219,3 +219,25 @@ dumps: the plugin scanned only 16 of the submit's buffers).
 - Current stop: DMA_DATA C4104000 00000004 (not implemented yet). Seen on
   lavapipe with the wave compute dispatches skipped; that stop is in the
   command processor, before any GPU work.
+
+## 2026-11-08: GDS, s_nand_b64, the memory query and a contiguous view
+
+All on lavapipe with the wave compute dispatches skipped (a local,
+uncommitted change); the real GPU has not run the game since the hang
+fix.
+- DMA_DATA C4104000: data (4 bytes) into GDS. SwARc ps4 6207eeb models
+  GDS for DMA_DATA; no shader of the game's has used GDS so far (DS
+  instructions with the GDS bit are fatal).
+- s_nand_b64 at 0x11103DCD08 (a draw's shader): 6207eeb.
+- sceKernelVirtualQuery (0x8621CC) and what follows (the loop at
+  0x862170): the game takes a 1 MiB block from its heap in the big
+  direct mapping at 0x1000000000, queries it (asserting isDirectMemory
+  and 1 MiB alignment of the physical address, start - addr + offset),
+  munmaps it there and maps its offset again (flags 0x90, prot 0x33) at
+  the next slot of a contiguous range: a virtually contiguous view of
+  scattered physical blocks. SwARc ps4 009d40f answers the query from
+  recorded mappings and keeps an unmapped range's contents for its next
+  mapping.
+- Current stop: libSceVideodec2!sceVideodec2QueryComputeMemoryInfo
+  (return address 0x8A35F8): the hardware video decoder, not modelled
+  yet.
