@@ -194,3 +194,28 @@ dumps: the plugin scanned only 16 of the submit's buffers).
 - SwARc ps4 2ea9382 writes the dumps that way (backend 0 holds the count,
   the others stay at 0).
 - Current stop: s_not_b64 in a draw shader (11103B2AA4: BEEA086A).
+
+## 2026-11-08: past s_not_b64; a GPU hang in a pixel shader's waterfall loop
+
+- The shader at the old stop is an alpha test: v_cmp, s_and_b64 vcc,
+  s_not_b64 vcc, vcc, s_and_saveexec_b64, then an export or a discard.
+- Once it was translated, the first frame hung the GPU (NVRM Xid 109,
+  CTX SWITCH TIMEOUT, then VK_ERROR_DEVICE_LOST in vkQueueSubmit). The
+  hang froze the host's desktop each time, so later reproductions ran on
+  lavapipe (VK_DRIVER_FILES=lvp_icd). Lavapipe's subgroups are too
+  narrow for the game's wave compute shaders (the "host subgroups unlike
+  its waves" fatal), so those dispatches were skipped while bisecting.
+  Skipping them on the real GPU did not stop the hang, and neither did
+  skipping the occlusion-counted draws.
+- The culprit was a pixel shader (vertex shader + pixel shader pair
+  drawn as a rectangle list) that reads VGPRs by a per-pixel index:
+  s_mov_b64 s[10:11], exec, then a loop of v_readfirstlane s14, v0;
+  s_mov_b32 m0, s14; v_cmpx_eq_u32 s[14:15], s14, v0; s_andn2_b64
+  s[10:11], s[10:11], s[14:15]; v_movrels x2; s_mov_b64 exec, s[10:11];
+  s_cbranch_scc1 back. The shader opens with s_wqm_b64 exec, exec, and
+  SwARc spread that over the wave's quads (EXEC 0xF in a stage that runs
+  one lane per invocation), so the loop cleared bit 0 and never the
+  rest. SwARc ps4 9e8b858 keeps the WQM result to the invocation's lane.
+- Current stop: DMA_DATA C4104000 00000004 (not implemented yet). Seen on
+  lavapipe with the wave compute dispatches skipped; that stop is in the
+  command processor, before any GPU work.
