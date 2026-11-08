@@ -368,3 +368,19 @@ every call for the game's one decoder:
   supported" (sceKernelMapDirectMemory from a guest thread, 0x0104),
   after the AJM jobs above. The kernel HLE maps each direct memory range
   once; the game maps one range at two addresses.
+
+## 2026-11-08: direct memory "mapped twice" was munmap; next, flip mode 2
+
+- Not aliasing. The game keeps a linear view of its direct memory (one
+  0x64000000 mapping at 0x10_0000_0000 + offset) and moves 1 MiB pieces
+  out of it: VirtualQuery, munmap of the piece, MapDirectMemory of the
+  same offset at 0x13_0000_0000 + n MiB (FIXED|NO_OVERWRITE, 75 pieces;
+  the console's log shows the same sequence: slot 0x1300000000, then
+  0x1300100000, ...). For the video decoder it then munmaps the whole
+  75 MiB window in one call and maps each offset back into the linear
+  view (FIXED|NO_OVERWRITE, from 0x8624BF; 204 calls, no error on the
+  console). SwARc's munmap freed only the first mapping of the window
+  and kept unmapped pieces reserved; fixed in SwARc (munmap frees every
+  mapping in its range, fixed maps reserve their exact address).
+- Stops at: FATAL "sceVideoOutSubmitFlip: flip mode 2 not implemented
+  yet".
