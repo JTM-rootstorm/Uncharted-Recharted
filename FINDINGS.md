@@ -241,3 +241,49 @@ fix.
 - Current stop: libSceVideodec2!sceVideodec2QueryComputeMemoryInfo
   (return address 0x8A35F8): the hardware video decoder, not modelled
   yet.
+
+## 2026-11-08: v_mbcnt, GDS ds_append, 64-bit LDS; into Videodec2
+
+The game now runs on the real GPU again (no Xid); lavapipe cannot run
+its wave compute shaders. SwARc ps4 42b4e24: v_mbcnt_lo/hi, ds_append on
+the GDS (the CP's GDS bound read-write to compute stages in waves),
+ds_write_b64/ds_read_b64.
+
+Videodec2 (the movie path): the console run with the hlevals plugin
+(ucr_plugin3.txt in the session scratchpad, not kept in the repo) logged
+every call for the game's one decoder:
+- QueryComputeMemoryInfo: 0x495200 (VdecCore: 4120 bytes of shader state
+  rounded to 256, plus 4800768). AllocateComputeQueue: pipe 4, queue 7,
+  checkMemoryType 1, memory at 0x1500000000; queue handle = memory +
+  0x290500 (VdecCore's object past the shader state and ring).
+- Decoder config: AVC (1/1), profile 100, level 42, 1920x1088, max DPB
+  -1, pipeline depth 4, queue 0x1500290500, affinity 0x3F, priority -1,
+  checkMemoryType 1. QueryDecoderMemoryInfo: cpu 0x334CC00, gpu
+  0x48EAE00, cpuGpu 0x304B000, maxFrameBufferSize 0x331400, alignment
+  0x100. CreateDecoder with cpu 0x1300000000, gpu 0x1400000000, cpuGpu
+  0x1500600000.
+- Decode: AUs of 1151, 71, 68... bytes, pts/dts -1; frame buffer 0x400000
+  bytes. The first output came with the 8th AU (index 7), one per AU
+  after; the output frame is copied into the frame buffer passed to
+  that Decode (isAccepted set). Output: valid, codec 1, width 1920,
+  pitch 1920, height 1088, the frame buffer and its size. Picture info
+  (0x68 bytes, AVC): SPS/VUI facts (profile, level, size in MBs - 1,
+  crop bottom 8, VUI timing 1/120) at the frame buffer's last KiB.
+- Flush returns the remaining frames one per call.
+- The frames the plugin dumped (PS4-HB/dumps/11.00/hlevals_ucr_run4,
+  pictures 0, 30, 90 of shareddata/movies/ps4/sce-ndi-logos.bsf, a raw
+  x264 Annex B stream) are NV12 at pitch 1920, chroma at 1920 x 1088,
+  byte for byte ffmpeg's decode. The attached data the game passes is
+  the access unit's index; pictures come out in display order (0, 3, 2,
+  4, 1, 7, 6, 8, 5, ...: the stream's B-pyramid). The buffer's last KiB
+  holds the decoder's picture record (GetPictureInfo's source).
+- SwARc ps4 5f7a0fb implements Videodec2 on ffmpeg with those
+  measurements; our run writes its pictures at the console's addresses
+  (0x13039CCD00, ...). libSceNpTus: the game deletes a title context it
+  never made (signed out): 0x8055070E, as 11.00's library answers.
+- Current stop: libSceAjm, instance 0x4001 (ATRAC9, flags 0x100000041,
+  thread 0114): a batch with one RunSplitBuffer job (flags
+  0x800000001001: STREAM, MULTIPLE_FRAMES, rev 1) and no initialisation
+  job first. What the ACP answers then is not measured: the hlevals
+  plugin needs AJM hooks (instance flags, the batch, the sideband after
+  BatchWait) and a console run.
