@@ -439,3 +439,46 @@ every call for the game's one decoder:
   "past flip 9400 in 180 s" run was at the wrong vblank rate.
 - A 180 s run at the right rate: no fatal error. Gravity Rush 120 s:
   no fatal error, through its movie and demo.
+
+## 2026-11-08: from the title into the first game's opening cutscene
+
+- Fast intro movies again: the release build dirs still pointed at a
+  deleted SwARc worktree, so they ran an old runtime. Reconfigured
+  against SwARc main; the pacing is right again.
+- Trophies: the game counts its trophies (sceNpTrophyGetTrophyUnlockState).
+  SwARc reads the count from sce_sys/npbind.dat and
+  sce_sys/trophy/trophyNN.trp. The dump lacked them; they were copied
+  from the console into the local dump (app0-union/sce_sys), not the
+  repo.
+- The save flow: the save list with a "new item" entry, and the progress
+  bar dialog, including SetValue before Initialize (SwARc, measured on
+  11.00).
+- x64: F16C (vcvtph2ps, vcvtps2ph) in the lifter.
+- GPU (SwARc worktree fmtstore, not landed yet):
+  - Buffer format stores of 16-bit floats.
+  - SGPRs spilled to VGPR lanes (v_writelane/v_readlane) outside waves.
+  - A pixel shader's buffer loads at a 64-bit address, from a lane
+    offset with a known reach. The game picks a shadow cascade (0-4,
+    from four v_cmps) times 64 from a pointer. The resolver now tracks
+    small per-lane ranges, so the load reads that range unchecked; draw
+    stages cannot write a fault word.
+  - Two resolver facts were being lost:
+    - image samples cleared 5 VGPRs whatever their dmask;
+    - a load writing over its own address VGPRs cleared them before
+      they were read.
+- Lifter (same worktree): a clang jump table whose byte index is
+  bounded before an in-place movzx (`dec cl; cmp cl, 7; ja; movzx
+  ecx, cl` at 0x81CBB2). The lifts of this game, GR and Q2E differ
+  only there.
+- The run now starts a new game in the first game: save data, then
+  u1data/build/main/movie1/ps4/00a-01a-sequence.bsf.
+- Current stop: AJM instance 0x4003 gets a RIFF header whose fmt chunk
+  says 6 channels (block align 160, 7500 B/s, channel mask 0x4), while
+  its ATRAC9 config FE 70 04 F0 is mono, 48 kHz, 40-byte frames x4 =
+  160. Everything but nChannels agrees with the config: probably one
+  channel of the cutscene's 5.1 per instance. What the ACP does with
+  that mismatch (decode by the config, or reject) is not in any
+  console log: runs 6 and 7 stop at the title. Next: a console run with
+  the hlevals plugin that starts a new game in the first game and plays
+  into the opening cutscene, then read the AJM jobs for that header
+  (ajm_jobs.py).
