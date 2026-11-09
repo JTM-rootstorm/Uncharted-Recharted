@@ -417,3 +417,25 @@ every call for the game's one decoder:
 - A run with UCR_TRACE=1 (slower) stopped earlier, at flip 247, with
   FATAL "libSceVideodec2: a second SPS not implemented yet"; the plain
   run did not reach it in 180 s. Next stop to look at.
+
+## 2026-11-08: the "second SPS" stop and the fast intro movies
+
+- The "second SPS" stop was not in the streams: a scan of every SPS in
+  all 127 .bsf files finds one, the same in every file. The HLE compared
+  SPSs with memcmp, padding included; the padding is not set, so a
+  repeated SPS could compare unequal (seen only in the slower trace
+  run). Fixed in SwARc ("orbis: Videodec2 compares SPSs by field"). The
+  trace run now goes past 688 Decode calls without it.
+- The intro movies played too fast: our build decoded an access unit
+  every 1.5-2 ms. On the console (run 6/7 logs, the TSCs of the first
+  48 Decode calls) it is one per 16-17 ms (7-25 ms jitter) after the
+  first 8 that fill the pipeline, i.e. the stream's 60 fps; pts are all
+  -1, so the game paces the movie by its flips. FlipStatus samples on
+  the console (run 7) never show more than 2 flips pending.
+- Cause: SwARc's vblank period was 16.7 us, not ms (since the 59.94 Hz
+  change), so mode 1 flips never waited. Fixed in SwARc ("orbis:
+  vblanks every 16.7 ms, not 16.7 us"); decodes now come 16-17 ms
+  apart with the console's jitter (688 in 11.5 s). The earlier
+  "past flip 9400 in 180 s" run was at the wrong vblank rate.
+- A 180 s run at the right rate: no fatal error. Gravity Rush 120 s:
+  no fatal error, through its movie and demo.
